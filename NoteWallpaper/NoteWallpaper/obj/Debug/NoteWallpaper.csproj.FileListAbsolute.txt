@@ -1,0 +1,13 @@
+D:\Code\GitHub\NotesWallpaper\NoteWallpaper\NoteWallpaper\bin\Debug\NoteWallpaper.exe.config
+D:\Code\GitHub\NotesWallpaper\NoteWallpaper\NoteWallpaper\bin\Debug\NoteWallpaper.exe
+D:\Code\GitHub\NotesWallpaper\NoteWallpaper\NoteWallpaper\bin\Debug\NoteWallpaper.pdb
+D:\Code\GitHub\NotesWallpaper\NoteWallpaper\NoteWallpaper\obj\Debug\MainWindow.baml
+D:\Code\GitHub\NotesWallpaper\NoteWallpaper\NoteWallpaper\obj\Debug\MainWindow.g.cs
+D:\Code\GitHub\NotesWallpaper\NoteWallpaper\NoteWallpaper\obj\Debug\App.g.cs
+D:\Code\GitHub\NotesWallpaper\NoteWallpaper\NoteWallpaper\obj\Debug\NoteWallpaper_MarkupCompile.cache
+D:\Code\GitHub\NotesWallpaper\NoteWallpaper\NoteWallpaper\obj\Debug\NoteWallpaper.g.resources
+D:\Code\GitHub\NotesWallpaper\NoteWallpaper\NoteWallpaper\obj\Debug\NoteWallpaper.Properties.Resources.resources
+D:\Code\GitHub\NotesWallpaper\NoteWallpaper\NoteWallpaper\obj\Debug\NoteWallpaper.csproj.GenerateResource.Cache
+D:\Code\GitHub\NotesWallpaper\NoteWallpaper\NoteWallpaper\obj\Debug\NoteWallpaper.exe
+D:\Code\GitHub\NotesWallpaper\NoteWallpaper\NoteWallpaper\obj\Debug\NoteWallpaper.pdb
+D:\Code\GitHub\NotesWallpaper\NoteWallpaper\NoteWallpaper\obj\Debug\NoteWallpaper.csprojResolveAssemblyReference.cache

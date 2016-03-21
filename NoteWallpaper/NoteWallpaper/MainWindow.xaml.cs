@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
@@ -14,6 +15,7 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Forms;
 using System.Windows.Input;
+using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
@@ -34,7 +36,7 @@ namespace NoteWallpaper
         {
             InitializeComponent();
             BackgroundColor = new System.Drawing.Color();
-            BackgroundColor = System.Drawing.Color.FromArgb(192, 192, 192);
+            BackgroundColor = System.Drawing.Color.FromArgb(64, 64, 64);
             FontColor = new System.Drawing.Color();
             FontColor = System.Drawing.Color.FromArgb(0, 0, 255);
             txtWidth.Text = Screen.PrimaryScreen.Bounds.Width.ToString();
@@ -51,11 +53,17 @@ namespace NoteWallpaper
             this.rtbPad.Height = this.Height - btnBGColorPicker.Height - 50;
             this.rtbPad.HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
             this.rtbPad.Document.PageWidth = 10000;
+            bmp = new Bitmap(Convert.ToInt32(txtWidth.Text), Convert.ToInt32(txtHeight.Text), System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            g = Graphics.FromImage(bmp);
             init = true;
         }
 
+        private static Bitmap bmp;
+        private static Graphics g;
         private void btnSaveWallpaper_Click(object sender, RoutedEventArgs e)
         {
+            string formattedEmail = XamlWriter.Save(rtbPad.Document);
+            //SaveXML();
             System.Windows.Forms.SaveFileDialog fileSave = new System.Windows.Forms.SaveFileDialog();
             fileSave.Filter = "图片文件|*.png";
             fileSave.FileName = "WallPaper" + DateTime.Now.ToString("yyyyMMdd") + ".png";
@@ -70,8 +78,12 @@ namespace NoteWallpaper
                 int defaultWidth = Convert.ToInt32(txtWidth.Text), defaultHeight = Convert.ToInt32(txtHeight.Text);
                 var textRange = new TextRange(rtbPad.Document.ContentStart, rtbPad.Document.ContentEnd);
                 string content = textRange.Text;
-                Bitmap bmp = new Bitmap(defaultWidth, defaultHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-                Graphics g = Graphics.FromImage(bmp);
+                if(string.IsNullOrWhiteSpace(content))
+                {
+                    content = "";
+                }
+                bmp = new Bitmap(defaultWidth, defaultHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                g = Graphics.FromImage(bmp);
 
                 SolidBrush sbrush = new SolidBrush(BackgroundColor);
                 SolidBrush fontbrush = new SolidBrush(FontColor);
@@ -87,6 +99,26 @@ namespace NoteWallpaper
                     g.FillRectangle(sbrush, 0, 0, defaultWidth, defaultHeight);
                 }
                 g.DrawString(content, FontDefault, fontbrush, new PointF(defaultWidth - dStrLength - 20, 20));
+
+                float imageHeight = vSizeF.Height;
+                foreach(var image in images)
+                {
+                    int imageFitHeight = image.Height, imageFitWidth = image.Width;
+                    if (imageFitHeight > defaultHeight)
+                    {
+                        imageFitWidth = Convert.ToInt32(imageFitWidth * 1.0 * defaultHeight / imageFitHeight);
+                        imageFitHeight = defaultHeight;                        
+                    }
+
+                    if (imageFitWidth > defaultWidth)
+                    {
+                        imageFitHeight = Convert.ToInt32(imageFitHeight * 1.0 * defaultWidth / imageFitWidth);
+                        imageFitWidth = defaultWidth;
+                    }
+
+                    g.DrawImage(image, defaultWidth - imageFitWidth, imageHeight, imageFitWidth, imageFitHeight);
+                    imageHeight += imageFitHeight;
+                }
                 g.SmoothingMode = SmoothingMode.HighQuality;
                 g.InterpolationMode = InterpolationMode.High;
                 using (FileStream file = new FileStream(currentFile, FileMode.Create))
@@ -162,6 +194,135 @@ namespace NoteWallpaper
             if (chkFixRatio.IsChecked == true && Int32.TryParse(txtHeight.Text, out height))
             {
                 txtWidth.Text = Convert.ToInt32(Screen.PrimaryScreen.Bounds.Width * height * 1.0 / Screen.PrimaryScreen.Bounds.Height).ToString();
+            }
+        }
+
+
+
+        private void SaveXML()
+        {
+            TextRange documentTextRange = new TextRange(rtbPad.Document.ContentStart, rtbPad.Document.ContentEnd);
+            FlowDocument flowDocument = rtbPad.Document;
+
+            string s = GetImagesXML(flowDocument);//temp
+            LoadImagesIntoXML(s);
+
+            using (StringWriter stringwriter = new StringWriter())
+            {
+                using (System.Xml.XmlWriter writer = System.Xml.XmlWriter.Create(stringwriter))
+                {
+                    XamlWriter.Save(flowDocument, writer);//Throws error here
+                }
+
+            }
+        }
+
+        private string GetImagesXML(FlowDocument flowDocument)
+        {
+            string s = "";
+
+            using (StringWriter stringwriter = new StringWriter())
+            {
+
+
+                Type inlineType;
+                InlineUIContainer uic;
+                System.Windows.Controls.Image replacementImage;
+                byte[] bytes;
+                BitmapImage bi;
+
+                //loop through replacing images in the flowdoc with the byte versions
+                foreach (Block b in flowDocument.Blocks)
+                {
+                    Paragraph paragraph = b as Paragraph;
+                    if (paragraph == null) continue;
+                    foreach (Inline i in ((Paragraph)b).Inlines)
+                    {
+                        inlineType = i.GetType();
+
+                        if (inlineType == typeof(Run))
+                        {
+                            //The inline is TEXT!!!
+                        }
+                        else if (inlineType == typeof(InlineUIContainer))
+                        {
+                            //The inline has an object, likely an IMAGE!!!
+                            uic = ((InlineUIContainer)i);
+
+                            //if it is an image
+                            if (uic.Child.GetType() == typeof(System.Windows.Controls.Image))
+                            {
+                                //grab the image
+                                replacementImage = (System.Windows.Controls.Image)uic.Child;
+                                bi = (BitmapImage)replacementImage.Source;
+
+                                //get its byte array
+                                bytes = GetImageByteArray(bi);
+
+                                s = Convert.ToBase64String(bytes);//temp
+                            }
+                        }
+                    }
+                }
+
+                return s;
+            }
+        }
+
+        private byte[] GetImageByteArray(BitmapImage src)
+        {
+            MemoryStream stream = new MemoryStream();
+            BmpBitmapEncoder encoder = new BmpBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create((BitmapSource)src));
+            encoder.Save(stream);
+            stream.Flush();
+            return stream.ToArray();
+        }
+
+        private static List<System.Drawing.Image> images = new List<System.Drawing.Image>();
+        private void LoadImagesIntoXML(string xml)
+        {
+
+
+            byte[] imageArr = Convert.FromBase64String(xml);
+            System.Windows.Controls.Image img = new System.Windows.Controls.Image();
+
+            MemoryStream stream = new MemoryStream(imageArr);
+            BmpBitmapDecoder decoder = new BmpBitmapDecoder(stream, BitmapCreateOptions.None, BitmapCacheOption.Default);
+            img.Source = decoder.Frames[0];
+            img.Stretch = Stretch.None;
+
+            Paragraph p = new Paragraph();
+            p.Inlines.Add(img);
+            rtbPad.Document.Blocks.Add(p);
+        }
+
+        private void rtbPad_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == Key.V && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                if (System.Windows.Forms.Clipboard.ContainsImage())
+                {
+                    System.Drawing.Image source = System.Windows.Forms.Clipboard.GetImage();
+                    images.Add(source);
+                }
+                if(System.Windows.Forms.Clipboard.ContainsFileDropList())
+                {
+                    StringCollection strcollect = System.Windows.Forms.Clipboard.GetFileDropList();
+                    if(strcollect[0].ToLower().EndsWith(".png") || 
+                        strcollect[0].ToLower().EndsWith(".jpg") ||
+                        strcollect[0].ToLower().EndsWith(".jpeg") ||
+                        strcollect[0].ToLower().EndsWith(".bmp"))
+                    {
+                        System.Windows.Forms.DataFormats.Format df = System.Windows.Forms.DataFormats.GetFormat(System.Windows.Forms.DataFormats.Bitmap);
+                        System.Drawing.Image image = System.Drawing.Image.FromFile(strcollect[0]);
+                        System.Windows.Forms.Clipboard.SetImage(image);
+                        images.Add(image);
+                    }
+
+                }
+                rtbPad.Paste();
+                e.Handled = true;
             }
         }
     }
